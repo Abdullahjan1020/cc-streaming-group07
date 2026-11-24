@@ -1,0 +1,59 @@
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: user-service
+  namespace: group07
+spec:
+  hosts:
+    - user-service.group07.svc.cluster.local
+  http:
+    - route:
+        - destination:
+            host: user-service.group07.svc.cluster.local
+            port:
+              number: 8001
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: product-service
+  namespace: group07
+spec:
+  hosts:
+    - product-service.group07.svc.cluster.local
+  http:
+    - route:
+        - destination:
+            host: product-service.group07.svc.cluster.local
+            port:
+              number: 8002
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: order-service
+  namespace: group07
+spec:
+  hosts:
+    - order-service.group07.svc.cluster.local
+  http:
+    - route:
+        - destination:
+            host: order-service.group07.svc.cluster.local
+            port:
+              number: 8003
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: notification-service
+  namespace: group07
+spec:
+  hosts:
+    - notification-service.group07.svc.cluster.local
+  http:
+    - route:
+        - destination:
+            host: notification-service.group07.svc.cluster.local
+            port:
+              number: 8004

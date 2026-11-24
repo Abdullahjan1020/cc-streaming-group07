@@ -1,0 +1,15 @@
+{
+  "uri": "/gateway/health",
+  "methods": ["GET"],
+  "upstream": {
+    "type": "roundrobin",
+    "nodes": {
+      "user-service:8001": 1
+    }
+  },
+  "plugins": {
+    "proxy-rewrite": {
+      "uri": "/health"
+    }
+  }
+}

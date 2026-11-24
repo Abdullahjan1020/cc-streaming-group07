@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: group07
+spec:
+  selector:
+    app: user-service
+  ports:
+    - name: http
+      port: 8001
+      targetPort: http
+      appProtocol: http

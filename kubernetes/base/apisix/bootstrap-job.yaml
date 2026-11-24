@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: apisix-config
+  namespace: group07
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app: apisix-config
+        job-name: apisix-config
+      annotations:
+        sidecar.istio.io/inject: "true"
+        sidecar.istio.io/nativeSidecar: "true"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: apisix
+      containers:
+        - name: configure
+          image: curlimages/curl:8.12.1
+          command: ["/bin/sh", "/routes/configure-apisix.sh"]
+          env:
+            - name: APISIX_ADMIN_URL
+              value: http://apisix-admin.group07.svc.cluster.local:9180/apisix/admin
+            - name: APISIX_ADMIN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: application-secrets
+                  key: apisix-admin-key
+            - name: APISIX_SIDECAR_FALLBACK_ENABLED
+              value: "false"
+          volumeMounts:
+            - name: configure-apisix.sh
+              mountPath: /routes/configure-apisix.sh
+              subPath: configure-apisix.sh
+              readOnly: true
+            - name: route-files
+              mountPath: /routes/routes
+              readOnly: true
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+      volumes:
+        - name: configure-apisix.sh
+          configMap:
+            name: apisix-bootstrap
+        - name: route-files
+          configMap:
+            name: apisix-kubernetes-routes

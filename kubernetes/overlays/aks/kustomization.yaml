@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+patches:
+  - path: resource-patches.yaml
+  - path: apisix-loadbalancer-patch.yaml
+images:
+  - name: group07/user-service
+    newName: REPLACE_WITH_ACR/user-service
+    newTag: REPLACE_WITH_IMAGE_TAG
+  - name: group07/product-service
+    newName: REPLACE_WITH_ACR/product-service
+    newTag: REPLACE_WITH_IMAGE_TAG
+  - name: group07/order-service
+    newName: REPLACE_WITH_ACR/order-service
+    newTag: REPLACE_WITH_IMAGE_TAG
+  - name: group07/notification-service
+    newName: REPLACE_WITH_ACR/notification-service
+    newTag: REPLACE_WITH_IMAGE_TAG

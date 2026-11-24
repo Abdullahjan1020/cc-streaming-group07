@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apisix-kubernetes-routes
+  namespace: group07
+data:
+  gateway-health.json: |
+    {"uri":"/gateway/health","methods":["GET"],"upstream":{"type":"roundrobin","nodes":{"user-service.group07.svc.cluster.local:8001":1}},"plugins":{"proxy-rewrite":{"uri":"/health"}}}
+  users.json: |
+    {"uris":["/api/users","/api/users/*"],"methods":["GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"],"upstream":{"type":"roundrobin","nodes":{"user-service.group07.svc.cluster.local:8001":1}},"plugins":{"proxy-rewrite":{"regex_uri":["^/api/users(/.*)?$","/users$1"]}}}
+  auth.json: |
+    {"uris":["/api/auth","/api/auth/*"],"methods":["GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"],"upstream":{"type":"roundrobin","nodes":{"user-service.group07.svc.cluster.local:8001":1}},"plugins":{"proxy-rewrite":{"regex_uri":["^/api/auth(/.*)?$","/auth$1"]}}}
+  products.json: |
+    {"uris":["/api/products","/api/products/*"],"methods":["GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"],"upstream":{"type":"roundrobin","nodes":{"product-service.group07.svc.cluster.local:8002":1}},"plugins":{"proxy-rewrite":{"regex_uri":["^/api/products(/.*)?$","/products$1"]}}}
+  orders.json: |
+    {"uris":["/api/orders","/api/orders/*","/api/users/*/orders"],"methods":["GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"],"upstream":{"type":"roundrobin","nodes":{"order-service.group07.svc.cluster.local:8003":1}},"plugins":{"proxy-rewrite":{"regex_uri":["^/api/orders(/.*)?$","/orders$1","^/api/users/(.*)/orders$","/users/$1/orders"]}}}
+  notifications.json: |
+    {"uris":["/api/notifications","/api/notifications/*"],"methods":["GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"],"upstream":{"type":"roundrobin","nodes":{"notification-service.group07.svc.cluster.local:8004":1}},"plugins":{"proxy-rewrite":{"regex_uri":["^/api/notifications(/.*)?$","/notifications$1"]}}}

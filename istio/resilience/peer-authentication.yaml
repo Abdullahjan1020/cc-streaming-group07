@@ -1,0 +1,64 @@
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: apisix-port-mtls
+  namespace: group07
+spec:
+  selector:
+    matchLabels:
+      app: apisix
+  mtls:
+    mode: PERMISSIVE
+  portLevelMtls:
+    "9080":
+      mode: DISABLE
+    "9180":
+      mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: user-service-mtls
+  namespace: group07
+spec:
+  selector:
+    matchLabels:
+      app: user-service
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: product-service-mtls
+  namespace: group07
+spec:
+  selector:
+    matchLabels:
+      app: product-service
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: order-service-mtls
+  namespace: group07
+spec:
+  selector:
+    matchLabels:
+      app: order-service
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: notification-service-mtls
+  namespace: group07
+spec:
+  selector:
+    matchLabels:
+      app: notification-service
+  mtls:
+    mode: STRICT

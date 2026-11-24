@@ -1,0 +1,15 @@
+{
+  "uris": ["/api/notifications", "/api/notifications/*"],
+  "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+  "upstream": {
+    "type": "roundrobin",
+    "nodes": {
+      "notification-service:8004": 1
+    }
+  },
+  "plugins": {
+    "proxy-rewrite": {
+      "regex_uri": ["^/api/notifications(/.*)?$", "/notifications$1"]
+    }
+  }
+}

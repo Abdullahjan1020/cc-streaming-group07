@@ -1,0 +1,18 @@
+{
+  "uris": ["/api/orders", "/api/orders/*", "/api/users/*/orders"],
+  "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+  "upstream": {
+    "type": "roundrobin",
+    "nodes": {
+      "order-service:8003": 1
+    }
+  },
+  "plugins": {
+    "proxy-rewrite": {
+      "regex_uri": [
+        "^/api/orders(/.*)?$", "/orders$1",
+        "^/api/users/(.*)/orders$", "/users/$1/orders"
+      ]
+    }
+  }
+}

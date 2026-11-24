@@ -1,0 +1,15 @@
+{
+  "uris": ["/api/users", "/api/users/*"],
+  "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+  "upstream": {
+    "type": "roundrobin",
+    "nodes": {
+      "user-service:8001": 1
+    }
+  },
+  "plugins": {
+    "proxy-rewrite": {
+      "regex_uri": ["^/api/users(/.*)?$", "/users$1"]
+    }
+  }
+}

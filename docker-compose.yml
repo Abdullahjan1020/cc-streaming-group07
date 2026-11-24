@@ -1,0 +1,189 @@
+name: cc-streaming-group07
+
+services:
+  mongodb:
+    image: mongo:7.0.16
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:-streaming_platform}
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand(\"ping\")'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  redis:
+    image: redis:7.4.2-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 64mb
+      - --maxmemory-policy
+      - allkeys-lru
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  user-service:
+    build:
+      context: ./services/user-service
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE: ${USER_MONGODB_DATABASE:-user_db}
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-replace-with-a-long-random-development-secret}
+    ports:
+      - "127.0.0.1:8001:8001"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    mem_limit: 256m
+
+  product-service:
+    build:
+      context: ./services/product-service
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE: ${PRODUCT_MONGODB_DATABASE:-product_db}
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "127.0.0.1:8002:8002"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    mem_limit: 256m
+
+  order-service:
+    build:
+      context: ./services/order-service
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE: ${ORDER_MONGODB_DATABASE:-order_db}
+      REDIS_URL: redis://redis:6379/0
+      PRODUCT_SERVICE_URL: http://product-service:8002
+      NOTIFICATION_SERVICE_URL: http://notification-service:8004
+    ports:
+      - "127.0.0.1:8003:8003"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+    mem_limit: 256m
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE: ${NOTIFICATION_MONGODB_DATABASE:-notification_db}
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "127.0.0.1:8004:8004"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    mem_limit: 256m
+
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.17
+    restart: unless-stopped
+    environment:
+      ETCD_NAME: apisix-etcd
+      ETCD_DATA_DIR: /etcd-data
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd:2380
+      ETCD_INITIAL_CLUSTER: apisix-etcd=http://etcd:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: apisix-local-cluster
+    volumes:
+      - etcd-data:/etcd-data
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  apisix:
+    image: apache/apisix:3.12.0-debian
+    restart: unless-stopped
+    environment:
+      APISIX_ADMIN_KEY: ${APISIX_ADMIN_KEY:-apisix-local-admin-key-change-before-use}
+    volumes:
+      - ./apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+    ports:
+      - "127.0.0.1:8000:9080"
+    depends_on:
+      etcd:
+        condition: service_healthy
+    mem_limit: 384m
+    networks:
+      - default
+      - apisix-admin
+
+  apisix-config:
+    image: curlimages/curl:8.12.1
+    restart: "no"
+    entrypoint: ["/bin/sh", "/routes/configure-apisix.sh"]
+    volumes:
+      - ./scripts/configure-apisix.sh:/routes/configure-apisix.sh:ro
+      - ./apisix/routes:/routes/routes:ro
+    environment:
+      APISIX_ADMIN_URL: http://apisix:9180/apisix/admin
+      APISIX_ADMIN_KEY: ${APISIX_ADMIN_KEY:-apisix-local-admin-key-change-before-use}
+    networks:
+      - apisix-admin
+    depends_on:
+      apisix:
+        condition: service_started
+      user-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+
+volumes:
+  mongodb-data:
+  redis-data:
+  etcd-data:
+
+networks:
+  apisix-admin:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24

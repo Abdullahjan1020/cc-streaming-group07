@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apisix
+  namespace: group07
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apisix
+  template:
+    metadata:
+      labels:
+        app: apisix
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      serviceAccountName: apisix
+      containers:
+        - name: apisix
+          image: apache/apisix:3.12.0-debian
+          ports:
+            - name: gateway
+              containerPort: 9080
+            - name: admin
+              containerPort: 9180
+          env:
+            - name: APISIX_ADMIN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: application-secrets
+                  key: apisix-admin-key
+          volumeMounts:
+            - name: apisix-config
+              mountPath: /usr/local/apisix/conf/config.yaml
+              subPath: config.yaml
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+      volumes:
+        - name: apisix-config
+          configMap:
+            name: apisix-config

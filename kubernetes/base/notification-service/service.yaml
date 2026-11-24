@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: group07
+spec:
+  selector:
+    app: notification-service
+  ports:
+    - name: http
+      port: 8004
+      targetPort: http
+      appProtocol: http

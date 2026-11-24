@@ -1,0 +1,15 @@
+{
+  "uris": ["/api/products", "/api/products/*"],
+  "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+  "upstream": {
+    "type": "roundrobin",
+    "nodes": {
+      "product-service:8002": 1
+    }
+  },
+  "plugins": {
+    "proxy-rewrite": {
+      "regex_uri": ["^/api/products(/.*)?$", "/products$1"]
+    }
+  }
+}
