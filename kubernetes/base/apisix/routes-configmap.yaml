@@ -13,6 +13,44 @@ data:
   products.json: |
     {"uris":["/api/products","/api/products/*"],"methods":["GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"],"upstream":{"type":"roundrobin","nodes":{"product-service.group07.svc.cluster.local:8002":1}},"plugins":{"proxy-rewrite":{"regex_uri":["^/api/products(/.*)?$","/products$1"]}}}
   orders.json: |
-    {"uris":["/api/orders","/api/orders/*","/api/users/*/orders"],"methods":["GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"],"upstream":{"type":"roundrobin","nodes":{"order-service.group07.svc.cluster.local:8003":1}},"plugins":{"proxy-rewrite":{"regex_uri":["^/api/orders(/.*)?$","/orders$1","^/api/users/(.*)/orders$","/users/$1/orders"]}}}
+    {
+      "uris": ["/api/orders", "/api/orders/*", "/api/users/*/orders"],
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+      "upstream": {
+        "type": "roundrobin",
+        "nodes": {
+          "order-service.group07.svc.cluster.local:8003": 1
+        }
+      },
+      "plugins": {
+        "proxy-rewrite": {
+          "regex_uri": [
+            "^/api/orders(/.*)?$", "/orders$1",
+            "^/api/users/(.*)/orders$", "/users/$1/orders"
+          ]
+        },
+        "limit-count": {
+          "count": 60,
+          "time_window": 60,
+          "key_type": "var",
+          "key": "remote_addr",
+          "policy": "local",
+          "rejected_code": 429,
+          "show_limit_quota_header": true
+        },
+        "api-breaker": {
+          "break_response_code": 503,
+          "max_breaker_sec": 30,
+          "unhealthy": {
+            "http_statuses": [500, 502, 503, 504],
+            "failures": 3
+          },
+          "healthy": {
+            "http_statuses": [200, 201, 202, 204],
+            "successes": 2
+          }
+        }
+      }
+    }
   notifications.json: |
     {"uris":["/api/notifications","/api/notifications/*"],"methods":["GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"],"upstream":{"type":"roundrobin","nodes":{"notification-service.group07.svc.cluster.local:8004":1}},"plugins":{"proxy-rewrite":{"regex_uri":["^/api/notifications(/.*)?$","/notifications$1"]}}}

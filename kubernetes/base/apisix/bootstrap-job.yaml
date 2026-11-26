@@ -32,7 +32,7 @@ spec:
             - name: APISIX_SIDECAR_FALLBACK_ENABLED
               value: "false"
           volumeMounts:
-            - name: configure-apisix.sh
+            - name: configure-apisix-script
               mountPath: /routes/configure-apisix.sh
               subPath: configure-apisix.sh
               readOnly: true
@@ -43,7 +43,7 @@ spec:
             requests: {cpu: 10m, memory: 16Mi}
             limits: {cpu: 100m, memory: 64Mi}
       volumes:
-        - name: configure-apisix.sh
+        - name: configure-apisix-script
           configMap:
             name: apisix-bootstrap
         - name: route-files

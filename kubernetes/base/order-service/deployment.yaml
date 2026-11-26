@@ -34,6 +34,10 @@ spec:
             - name: http
               containerPort: 8003
           env:
+            - name: SW_AGENT_NAME
+              value: order-service
+            - name: SW_AGENT_COLLECTOR_BACKEND_SERVICES
+              value: skywalking-skywalking-helm-oap.group07.svc.cluster.local:11800
             - name: MONGODB_URI
               value: mongodb://mongodb.group07.svc.cluster.local:27017
             - name: MONGODB_DATABASE

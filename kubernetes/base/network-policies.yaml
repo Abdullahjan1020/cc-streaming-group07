@@ -160,3 +160,26 @@ spec:
       ports:
         - port: 2379
           protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: skywalking-agent-egress
+  namespace: group07
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: ["order-service", "product-service", "user-service", "notification-service"]
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: skywalking
+              component: oap
+              release: skywalking
+      ports:
+        - port: 11800
+          protocol: TCP

@@ -216,6 +216,88 @@ The Kubernetes manifests contain separate APISIX Kubernetes route
 configuration with Kubernetes Service DNS upstreams. Docker Compose route files
 remain unchanged.
 
+### Kubernetes Rate Limiting and Circuit Breaker
+
+The Kubernetes orders route in
+`kubernetes/base/apisix/routes-configmap.yaml` keeps its existing
+`proxy-rewrite` configuration and adds these APISIX 3.12 plugins:
+
+- `limit-count` allows 60 requests per 60-second fixed window per source IP and
+  returns HTTP `429` when the quota is exceeded. It uses local counters on each
+  APISIX instance; clients sharing a source IP share a quota. The current APISIX
+  Deployment has one replica, so this is a per-instance limit. If the gateway
+  is scaled out, each replica will maintain its own counter.
+- `api-breaker` considers upstream responses `500`, `502`, `503`, or `504`
+  unhealthy. After 3 failures, it returns HTTP `503` while the circuit is open.
+  The breaker backs off up to 30 seconds and can recover after 2 upstream
+  responses with status `200`, `201`, `202`, or `204`.
+
+The exact plugin configuration is:
+
+```json
+{
+  "limit-count": {
+    "count": 60,
+    "time_window": 60,
+    "key_type": "var",
+    "key": "remote_addr",
+    "policy": "local",
+    "rejected_code": 429,
+    "show_limit_quota_header": true
+  },
+  "api-breaker": {
+    "break_response_code": 503,
+    "max_breaker_sec": 30,
+    "unhealthy": {
+      "http_statuses": [500, 502, 503, 504],
+      "failures": 3
+    },
+    "healthy": {
+      "http_statuses": [200, 201, 202, 204],
+      "successes": 2
+    }
+  }
+}
+```
+
+After changing the Kubernetes route ConfigMap, delete and recreate the
+bootstrap Job to upload the routes to the APISIX Admin API:
+
+```powershell
+kubectl delete job apisix-config -n group07 --ignore-not-found
+kubectl apply -k kubernetes/base
+kubectl wait --for=condition=complete job/apisix-config -n group07 --timeout=120s
+kubectl logs job/apisix-config -n group07
+```
+
+The logs should end with `APISIX routes configured`. To inspect the registered
+orders route, start this port-forward in one terminal:
+
+```powershell
+kubectl port-forward -n group07 svc/apisix-admin 9180:9180
+```
+
+In another PowerShell terminal, read the key from the Kubernetes Secret into a
+variable and request the route. The key is sent in a header and is not printed:
+
+```powershell
+$encodedKey = kubectl get secret application-secrets -n group07 -o jsonpath='{.data.apisix-admin-key}'
+$adminKey = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encodedKey))
+Invoke-RestMethod -Uri http://127.0.0.1:9180/apisix/admin/routes/orders -Headers @{ "X-API-KEY" = $adminKey } | ConvertTo-Json -Depth 20
+Remove-Variable adminKey, encodedKey
+```
+
+The returned route should include both `limit-count` and `api-breaker` under
+`plugins`. Normal orders requests continue to the order service; requests over
+the configured per-IP quota should receive HTTP `429` with rate-limit quota
+headers. After the configured upstream failures, requests while the circuit is
+open should receive HTTP `503`, followed by recovery after healthy upstream
+responses. Runtime circuit-breaker testing still requires an isolated failure
+test; do not induce upstream failures on a live environment.
+
+These settings apply to the Kubernetes route only. `apisix/routes/orders.json`
+is the separate Docker Compose route configuration and remains unchanged.
+
 ## Python Testing
 
 Activate the existing virtual environment:
